@@ -30,6 +30,7 @@ app.include_router(sentiment.router, prefix="/api/v1/sentiment", tags=["sentimen
 app.include_router(sentiment.router_customers, prefix="/api/v1/customers", tags=["customers"])
 app.include_router(sentiment.router_articles, prefix="/api/v1/sentiment/articles", tags=["sentiment-articles"])
 app.include_router(sentiment.router_events, prefix="/api/v1/sentiment/events", tags=["sentiment-events"])
+app.include_router(sentiment.router_tasks, prefix="/api/v1/sentiment/tasks", tags=["sentiment-tasks"])
 
 
 @app.get("/")

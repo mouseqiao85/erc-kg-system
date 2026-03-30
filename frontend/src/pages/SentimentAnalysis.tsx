@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Select, Button, Card, Row, Col, Statistic, Spin, Input, Space, Tabs, Tag, Modal, List, Timeline, message } from 'antd'
-import { ReloadOutlined, SearchOutlined, WarningOutlined, LineChartOutlined, ApartmentOutlined, FireOutlined } from '@ant-design/icons'
+import { Select, Button, Card, Row, Col, Statistic, Spin, Input, Space, Tabs, Tag, Modal, List, Timeline, message, Progress, Table, DatePicker } from 'antd'
+import { ReloadOutlined, SearchOutlined, WarningOutlined, LineChartOutlined, ApartmentOutlined, FireOutlined, CloudDownloadOutlined, PlayCircleOutlined } from '@ant-design/icons'
 import * as d3 from 'd3'
-import { sentimentService, customerService, eventService } from '../services/api'
+import { sentimentService, customerService, eventService, articleService } from '../services/api'
 
 const { Search } = Input
 const { TabPane } = Tabs
+const { RangePicker } = DatePicker
 
 interface GraphNode {
   id: string
@@ -211,6 +212,24 @@ export default function SentimentAnalysis() {
 
   const industries = ['制造', '能源', '金融', '科技']
 
+  const [collectionLoading, setCollectionLoading] = useState(false)
+  const [collectSource, setCollectSource] = useState('rss')
+
+  const handleCollect = async () => {
+    setCollectionLoading(true)
+    try {
+      const res = await sentimentTaskService.startCollection(collectSource)
+      message.success(`Collection task started: ${res.data.task_id}`)
+      setTimeout(() => {
+        fetchAlerts()
+        fetchIndustryOverview()
+      }, 5000)
+    } catch (err) {
+      message.error('Failed to start collection')
+    }
+    setCollectionLoading(false)
+  }
+
   return (
     <div>
       <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -235,6 +254,31 @@ export default function SentimentAnalysis() {
           </Card>
         </Col>
       </Row>
+
+      <Card style={{ marginBottom: 16 }} title="Data Collection">
+        <Space>
+          <Select
+            value={collectSource}
+            onChange={setCollectSource}
+            style={{ width: 150 }}
+            options={[
+              { label: 'RSS Feeds', value: 'rss' },
+              { label: 'Announcements', value: 'announcement' },
+            ]}
+          />
+          <Button 
+            type="primary" 
+            icon={<CloudDownloadOutlined />} 
+            onClick={handleCollect}
+            loading={collectionLoading}
+          >
+            Start Collection
+          </Button>
+          <Button icon={<ReloadOutlined />} onClick={() => { fetchAlerts(); fetchIndustryOverview(); }}>
+            Refresh
+          </Button>
+        </Space>
+      </Card>
 
       <Tabs activeKey={activeTab} onChange={setActiveTab}>
         <TabPane tab="Industry Overview" key="industry">

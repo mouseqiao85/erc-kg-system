@@ -474,3 +474,55 @@ def create_event(event: schemas.SentimentEventCreate, db: Session = Depends(get_
     db.commit()
     db.refresh(db_event)
     return db_event
+
+
+router_tasks = APIRouter()
+
+
+@router_tasks.post("/collect")
+def start_collection_task(source: str = "rss"):
+    """启动数据采集任务"""
+    try:
+        from app.services.sentiment_tasks import collect_and_analyze
+        task = collect_and_analyze.delay(source)
+        return {"task_id": task.id, "status": "started", "source": source}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_tasks.get("/collect/{task_id}")
+def get_collection_status(task_id: str):
+    """获取采集任务状态"""
+    try:
+        from app.services.sentiment_tasks import collect_and_analyze
+        task = collect_and_analyze.AsyncResult(task_id)
+        return {
+            "task_id": task_id,
+            "status": task.state,
+            "result": task.result if task.ready() else None,
+            "info": task.info if task.info else None
+        }
+    except Exception as e:
+        return {"task_id": task_id, "status": "ERROR", "error": str(e)}
+
+
+@router_tasks.post("/analyze-article/{article_id}")
+def analyze_article_task(article_id: str):
+    """分析单篇文章"""
+    try:
+        from app.services.sentiment_tasks import analyze_article_sentiment
+        task = analyze_article_sentiment.delay(article_id)
+        return {"task_id": task.id, "status": "started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_tasks.post("/update-customer/{customer_id}")
+def update_customer_sentiment_task(customer_id: str):
+    """更新客户情感评分"""
+    try:
+        from app.services.sentiment_tasks import update_customer_sentiment
+        task = update_customer_sentiment.delay(customer_id)
+        return {"task_id": task.id, "status": "started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

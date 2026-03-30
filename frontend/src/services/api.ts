@@ -92,4 +92,11 @@ export const eventService = {
   createEvent: (data: any) => api.post('/sentiment/events', data),
 }
 
+export const sentimentTaskService = {
+  startCollection: (source: string = 'rss') => api.post('/sentiment/tasks/collect', null, { params: { source } }),
+  getCollectionStatus: (taskId: string) => api.get(`/sentiment/tasks/collect/${taskId}`),
+  analyzeArticle: (articleId: string) => api.post(`/sentiment/tasks/analyze-article/${articleId}`),
+  updateCustomerSentiment: (customerId: string) => api.post(`/sentiment/tasks/update-customer/${customerId}`),
+}
+
 export default api
