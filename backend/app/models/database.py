@@ -130,3 +130,74 @@ class SystemConfig(Base):
     value = Column(JSON, nullable=False)
     description = Column(Text)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Customer(Base):
+    __tablename__ = "customers"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False, index=True)
+    industry = Column(String(50), nullable=False, index=True)
+    level = Column(String(20))
+    tags = Column(JSON, default=[])
+    sentiment_score = Column(Float)
+    properties = Column(JSON, default={})
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SentimentArticle(Base):
+    __tablename__ = "sentiment_articles"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String(500), nullable=False)
+    source = Column(String(100), nullable=False, index=True)
+    source_type = Column(String(20))
+    url = Column(String(1000))
+    content = Column(Text)
+    publish_time = Column(DateTime, index=True)
+    sentiment_score = Column(JSON)
+    metadata = Column(JSON, default={})
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SentimentEvent(Base):
+    __tablename__ = "sentiment_events"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String(500), nullable=False)
+    type = Column(String(50), index=True)
+    severity = Column(String(20), index=True)
+    status = Column(String(20), default="active", index=True)
+    start_time = Column(DateTime)
+    end_time = Column(DateTime)
+    sentiment_impact = Column(JSON)
+    metadata = Column(JSON, default={})
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SentimentScore(Base):
+    __tablename__ = "sentiment_scores"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    entity_type = Column(String(50), nullable=False)
+    entity_id = Column(UUID(as_uuid=True), nullable=False)
+    score_overall = Column(Float)
+    score_emotion = Column(Float)
+    score_influence = Column(Float)
+    score_timeliness = Column(Float)
+    score_credibility = Column(Float)
+    article_id = Column(UUID(as_uuid=True))
+    dimensions = Column(JSON)
+    calculated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Person(Base):
+    __tablename__ = "persons"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False, index=True)
+    position = Column(String(100))
+    company = Column(String(255))
+    metadata = Column(JSON, default={})
+    created_at = Column(DateTime, default=datetime.utcnow)

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Table, Button, Space, Upload, message, Select } from 'antd'
 import { UploadOutlined, DeleteOutlined } from '@ant-design/icons'
-import type { UploadFile } from 'antd/es/upload/interface'
 import { documentService, projectService } from '../services/api'
 
 interface Document {

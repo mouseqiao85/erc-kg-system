@@ -4,6 +4,7 @@ from typing import List
 from app.core.database import get_db
 from app.models import schemas
 from app.models.database import Document, Project
+from app.services.document_parser import DocumentParser
 import uuid
 import os
 import aiofiles
@@ -17,6 +18,7 @@ UPLOAD_DIR = "backend/uploads"
 async def upload_document(
     file: UploadFile = File(...),
     project_id: str = None,
+    parse: bool = True,
     db: Session = Depends(get_db)
 ):
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -25,13 +27,28 @@ async def upload_document(
     
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     
-    file_ext = file.filename.split(".")[-1]
+    file_ext = file.filename.split(".")[-1].lower()
     file_id = str(uuid.uuid4())
     file_path = os.path.join(UPLOAD_DIR, f"{file_id}.{file_ext}")
     
+    content = await file.read()
+    
     async with aiofiles.open(file_path, 'wb') as f:
-        content = await file.read()
         await f.write(content)
+    
+    document_content = ""
+    status = "pending"
+    
+    if parse:
+        try:
+            document_content = DocumentParser.parse_from_content(content, file_ext)
+            if document_content:
+                status = "completed"
+            else:
+                status = "failed"
+        except Exception as e:
+            print(f"Parse error: {e}")
+            status = "failed"
     
     doc = Document(
         id=uuid.UUID(file_id),
@@ -39,13 +56,35 @@ async def upload_document(
         title=file.filename,
         format=file_ext,
         file_path=file_path,
-        status="pending"
+        content=document_content,
+        status=status
     )
     db.add(doc)
     db.commit()
     db.refresh(doc)
     
     return doc
+
+
+@router.post("/{doc_id}/parse")
+async def parse_document(doc_id: str, db: Session = Depends(get_db)):
+    """重新解析文档"""
+    doc = db.query(Document).filter(Document.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if not doc.file_path or not os.path.exists(doc.file_path):
+        raise HTTPException(status_code=400, detail="File not found")
+    
+    try:
+        content = DocumentParser.parse(doc.file_path)
+        doc.content = content
+        doc.status = "completed" if content else "failed"
+        db.commit()
+        db.refresh(doc)
+        return {"success": True, "content_length": len(content)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("", response_model=dict)

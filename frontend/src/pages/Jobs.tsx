@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Table, Button, Space, Card, Row, Col, Statistic, Select, Progress, Tag } from 'antd'
-import { PlayCircleOutlined } from '@ant-design/icons'
+import { Table, Button, Space, Card, Row, Col, Statistic, Select, Progress, Tag, message, Modal } from 'antd'
+import { PlayCircleOutlined, WifiOutlined } from '@ant-design/icons'
 import { jobService, projectService, documentService } from '../services/api'
+import { useWebSocket } from '../services/websocket'
 
 interface Job {
   id: string
@@ -19,6 +20,10 @@ export default function Jobs() {
   const [documents, setDocuments] = useState<{ id: string; title: string }[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [selectedDocs, setSelectedDocs] = useState<string[]>([])
+  const [selectedJob, setSelectedJob] = useState<string | null>(null)
+  const [wsModalVisible, setWsModalVisible] = useState(false)
+
+  const { progress, status: wsStatus, currentStep, isConnected, result: wsResult } = useWebSocket(selectedJob)
 
   const fetchJobs = async () => {
     if (!selectedProject) return
@@ -65,13 +70,25 @@ export default function Jobs() {
     }
   }, [selectedProject])
 
+  useEffect(() => {
+    if (wsStatus === 'completed') {
+      message.success('Job completed successfully!')
+      fetchJobs()
+      setWsModalVisible(false)
+      setSelectedJob(null)
+    } else if (wsStatus === 'failed') {
+      message.error('Job failed!')
+      fetchJobs()
+    }
+  }, [wsStatus])
+
   const handleBuild = async () => {
     if (!selectedProject || selectedDocs.length === 0) {
-      console.error('Please select project and documents')
+      message.warning('Please select project and documents')
       return
     }
     try {
-      await jobService.createJob({
+      const res = await jobService.createJob({
         project_id: selectedProject,
         doc_ids: selectedDocs,
         config: {
@@ -81,27 +98,47 @@ export default function Jobs() {
           enable_validation: true
         }
       })
+      const jobId = res.data.job_id
+      message.success('Job started!')
+      setSelectedJob(jobId)
+      setWsModalVisible(true)
       fetchJobs()
     } catch (err) {
-      console.error(err)
+      message.error('Failed to start job')
     }
   }
 
+  const handleViewProgress = (jobId: string) => {
+    setSelectedJob(jobId)
+    setWsModalVisible(true)
+  }
+
   const columns = [
-    { title: 'ID', dataIndex: 'id', key: 'id', render: (id: string) => id.slice(0, 8) },
+    { title: 'ID', dataIndex: 'id', key: 'id', render: (id: string) => id?.slice(0, 8) },
     { title: 'Type', dataIndex: 'type', key: 'type' },
     { 
       title: 'Status', 
       dataIndex: 'status', 
       key: 'status',
       render: (status: string) => {
-        const color = status === 'completed' ? 'green' : status === 'running' ? 'blue' : 'default'
+        const color = status === 'completed' ? 'green' : status === 'running' ? 'blue' : status === 'failed' ? 'red' : 'default'
         return <Tag color={color}>{status}</Tag>
       }
     },
-    { title: 'Progress', dataIndex: 'progress', key: 'progress', render: (p: number) => <Progress percent={p} size="small" /> },
+    { title: 'Progress', dataIndex: 'progress', key: 'progress', render: (p: number) => <Progress percent={p || 0} size="small" /> },
     { title: 'Step', dataIndex: 'current_step', key: 'current_step' },
     { title: 'Created', dataIndex: 'created_at', key: 'created_at', render: (t: string) => new Date(t).toLocaleString() },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_: any, record: Job) => (
+        record.status === 'running' ? (
+          <Button type="link" onClick={() => handleViewProgress(record.id)}>
+            View Progress
+          </Button>
+        ) : null
+      ),
+    },
   ]
 
   return (
@@ -112,7 +149,7 @@ export default function Jobs() {
         </Col>
       </Row>
 
-      <Card title="Build Knowledge Graph" style={{ marginBottom: 24 }}>
+      <Card title="Build Knowledge Graph" style={{ marginBottom: 16 }}>
         <Space direction="vertical" style={{ width: '100%' }}>
           <Select
             placeholder="Select Project"
@@ -136,6 +173,63 @@ export default function Jobs() {
       </Card>
 
       <Table columns={columns} dataSource={jobs} rowKey="id" loading={loading} />
+
+      <Modal
+        title={
+          <Space>
+            <WifiOutlined style={{ color: isConnected ? '#52c41a' : '#ff4d4f' }} />
+            Job Progress
+          </Space>
+        }
+        open={wsModalVisible}
+        onCancel={() => {
+          setWsModalVisible(false)
+          setSelectedJob(null)
+        }}
+        footer={[
+          <Button key="close" onClick={() => {
+            setWsModalVisible(false)
+            setSelectedJob(null)
+          }}>
+            Close
+          </Button>
+        ]}
+        width={500}
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="large">
+          <div>
+            <Statistic 
+              title="Status" 
+              value={wsStatus || 'pending'} 
+              valueStyle={{ color: wsStatus === 'completed' ? '#52c41a' : wsStatus === 'failed' ? '#ff4d4f' : '#1890ff' }}
+            />
+          </div>
+          
+          <div>
+            <div style={{ marginBottom: 8 }}>Progress</div>
+            <Progress 
+              percent={progress} 
+              status={wsStatus === 'completed' ? 'success' : wsStatus === 'failed' ? 'exception' : 'active'}
+            />
+          </div>
+
+          <div>
+            <div style={{ marginBottom: 8 }}>Current Step</div>
+            <Tag color="blue">{currentStep || 'Waiting...'}</Tag>
+          </div>
+
+          {wsResult && (
+            <div>
+              <div style={{ marginBottom: 8 }}>Result</div>
+              <Card size="small">
+                <pre style={{ margin: 0, fontSize: 12 }}>
+                  {JSON.stringify(wsResult, null, 2)}
+                </pre>
+              </Card>
+            </div>
+          )}
+        </Space>
+      </Modal>
     </div>
   )
 }

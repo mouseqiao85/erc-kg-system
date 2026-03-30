@@ -12,18 +12,37 @@ router = APIRouter()
 def get_triples(
     project_id: str = None,
     head: str = None,
-    limit: int = 20,
+    relation: str = None,
+    limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    query = db.query(Triple)
+    query = db.query(Triple).join(Entity, Triple.head_id == Entity.id)
     
     if project_id:
         query = query.filter(Triple.project_id == project_id)
     if head:
-        query = query.join(Entity, Triple.head_id == Entity.id).filter(Entity.name == head)
+        query = query.filter(Entity.name == head)
+    if relation:
+        query = query.filter(Triple.relation == relation)
     
     items = query.limit(limit).all()
-    return {"items": items}
+    
+    result = []
+    for t in items:
+        head_entity = db.query(Entity).filter(Entity.id == t.head_id).first()
+        tail_entity = db.query(Entity).filter(Entity.id == t.tail_id).first()
+        result.append({
+            "id": str(t.id),
+            "head": head_entity.name if head_entity else "",
+            "relation": t.relation,
+            "tail": tail_entity.name if tail_entity else "",
+            "confidence": t.confidence,
+            "valid": t.valid,
+            "project_id": str(t.project_id),
+            "created_at": t.created_at.isoformat() if t.created_at else None
+        })
+    
+    return {"items": result}
 
 
 @router.post("", response_model=schemas.TripleResponse)

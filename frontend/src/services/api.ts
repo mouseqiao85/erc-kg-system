@@ -59,11 +59,37 @@ export const graphService = {
   getGraph: (projectId: string, limit?: number) => api.get('/graph', { params: { project_id: projectId, limit } }),
   getSubgraph: (entityId: string, depth?: number) => api.get('/graph/subgraph', { params: { entity_id: entityId, depth } }),
   queryCypher: (query: string) => api.post('/graph/cypher', { query }),
+  naturalQuery: (question: string, projectId?: string) => api.post('/graph/natural', { question: { question, project_id: projectId } }),
 }
 
 export const authService = {
   login: (data: { username: string; password: string }) => api.post('/auth/login', data),
   refresh: (refreshToken: string) => api.post('/auth/refresh', { refresh_token: refreshToken }),
+}
+
+export const sentimentService = {
+  getIndustryOverview: (industries?: string[]) => api.get('/sentiment/industry-overview', { params: { industries } }),
+  getCustomerNetwork: (customerId: string, depth?: number) => api.get(`/sentiment/customer-network/${customerId}`, { params: { depth } }),
+  getEventEvolution: (eventId: string, includeArticles?: boolean) => api.get(`/sentiment/event-evolution/${eventId}`, { params: { include_articles: includeArticles } }),
+  getHotspotClusters: (industry?: string, limit?: number) => api.get('/sentiment/hotspot-clusters', { params: { industry, limit } }),
+  getEntitySentiment: (entityId: string) => api.get(`/sentiment/entity/${entityId}/sentiment`),
+  getIndustryTrend: (industry: string, period?: string) => api.get(`/sentiment/industry/${industry}/trend`, { params: { period } }),
+  getAlerts: (severity?: string, status?: string) => api.get('/sentiment/alerts', { params: { severity, status } }),
+}
+
+export const customerService = {
+  getCustomers: (params?: any) => api.get('/customers', { params }),
+  createCustomer: (data: any) => api.post('/customers', data),
+}
+
+export const articleService = {
+  getArticles: (params?: any) => api.get('/sentiment/articles', { params }),
+  createArticle: (data: any) => api.post('/sentiment/articles', data),
+}
+
+export const eventService = {
+  getEvents: (params?: any) => api.get('/sentiment/events', { params }),
+  createEvent: (data: any) => api.post('/sentiment/events', data),
 }
 
 export default api

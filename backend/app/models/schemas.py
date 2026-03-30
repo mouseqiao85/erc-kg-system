@@ -198,3 +198,122 @@ class PromptTemplateResponse(PromptTemplateBase):
     
     class Config:
         from_attributes = True
+
+
+class CustomerBase(BaseModel):
+    name: str
+    industry: str
+    level: Optional[str] = None
+    tags: List[str] = []
+    sentiment_score: Optional[float] = None
+
+
+class CustomerCreate(CustomerBase):
+    pass
+
+
+class CustomerResponse(CustomerBase):
+    id: UUID
+    properties: dict = {}
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class SentimentArticleBase(BaseModel):
+    title: str
+    source: str
+    source_type: Optional[str] = None
+    url: Optional[str] = None
+    content: Optional[str] = None
+    publish_time: Optional[datetime] = None
+
+
+class SentimentArticleCreate(SentimentArticleBase):
+    pass
+
+
+class SentimentArticleResponse(SentimentArticleBase):
+    id: UUID
+    sentiment_score: Optional[dict] = None
+    metadata: dict = {}
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class SentimentEventBase(BaseModel):
+    title: str
+    type: Optional[str] = None
+    severity: Optional[str] = None
+    status: str = "active"
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+
+
+class SentimentEventCreate(SentimentEventBase):
+    pass
+
+
+class SentimentEventResponse(SentimentEventBase):
+    id: UUID
+    sentiment_impact: Optional[dict] = None
+    metadata: dict = {}
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class SentimentScoreBase(BaseModel):
+    entity_type: str
+    entity_id: UUID
+    score_overall: Optional[float] = None
+    score_emotion: Optional[float] = None
+    score_influence: Optional[float] = None
+    score_timeliness: Optional[float] = None
+    score_credibility: Optional[float] = None
+
+
+class SentimentScoreCreate(SentimentScoreBase):
+    pass
+
+
+class SentimentScoreResponse(SentimentScoreBase):
+    id: UUID
+    dimensions: Optional[dict] = None
+    calculated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class SentimentTrendResponse(BaseModel):
+    date: str
+    score: float
+    count: int
+
+
+class AlertResponse(BaseModel):
+    id: UUID
+    title: str
+    type: str
+    severity: str
+    status: str
+    sentiment_score: Optional[float] = None
+    created_at: datetime
+
+
+class GraphStatistics(BaseModel):
+    total_nodes: int
+    total_edges: int
+    sentiment_distribution: dict = {}
+    industry_distribution: dict = {}
+
+
+class IndustryOverviewResponse(BaseModel):
+    nodes: List[dict]
+    edges: List[dict]
+    statistics: GraphStatistics

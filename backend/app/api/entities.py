@@ -4,9 +4,24 @@ from sqlalchemy import or_
 from app.core.database import get_db
 from app.models import schemas
 from app.models.database import Entity
+from app.core.milvus_client import milvus_client
+from app.core.config import settings
 import uuid
 
 router = APIRouter()
+
+embedding_model = None
+
+
+def get_embedding_model():
+    global embedding_model
+    if embedding_model is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+            embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        except Exception as e:
+            print(f"Failed to load embedding model: {e}")
+    return embedding_model
 
 
 @router.get("", response_model=dict)
@@ -59,3 +74,37 @@ def delete_entity(entity_id: str, db: Session = Depends(get_db)):
     db.delete(entity)
     db.commit()
     return {"success": True}
+
+
+@router.get("/search/semantic")
+def semantic_search(
+    query: str,
+    project_id: str = None,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """语义搜索实体"""
+    model = get_embedding_model()
+    if not model:
+        raise HTTPException(status_code=500, detail="Embedding model not available")
+    
+    query_embedding = model.encode([query]).tolist()[0]
+    
+    collection_name = f"entities_{project_id}" if project_id else "entities"
+    
+    try:
+        if not milvus_client.connected:
+            milvus_client.connect()
+        
+        if not milvus_client.list_collections() or collection_name not in milvus_client.list_collections():
+            return {"items": [], "message": "Collection not found"}
+        
+        results = milvus_client.search(
+            collection_name,
+            query_embedding,
+            top_k=limit
+        )
+        
+        return {"items": results}
+    except Exception as e:
+        return {"items": [], "error": str(e)}
