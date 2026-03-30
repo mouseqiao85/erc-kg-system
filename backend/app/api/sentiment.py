@@ -526,3 +526,138 @@ def update_customer_sentiment_task(customer_id: str):
         return {"task_id": task.id, "status": "started"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+router_export = APIRouter()
+
+
+@router_export.get("/export/customers")
+def export_customers(
+    format: str = "json",
+    industry: str = None,
+    db: Session = Depends(get_db)
+):
+    """导出客户数据"""
+    query = db.query(Customer)
+    if industry:
+        query = query.filter(Customer.industry == industry)
+    
+    customers = query.all()
+    
+    data = [{
+        "id": str(c.id),
+        "name": c.name,
+        "industry": c.industry,
+        "level": c.level,
+        "sentiment_score": c.sentiment_score,
+        "tags": c.tags,
+        "created_at": c.created_at.isoformat() if c.created_at else None
+    } for c in customers]
+    
+    if format == "csv":
+        csv_lines = ["id,name,industry,level,sentiment_score"]
+        for c in data:
+            csv_lines.append(f"{c['id']},{c['name']},{c['industry']},{c.get('level','')},{c.get('sentiment_score','')}")
+        return {"data": "\n".join(csv_lines), "content_type": "text/csv"}
+    
+    return {"data": data, "count": len(data)}
+
+
+@router_export.get("/export/articles")
+def export_articles(
+    format: str = "json",
+    source: str = None,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """导出文章数据"""
+    query = db.query(SentimentArticle)
+    if source:
+        query = query.filter(SentimentArticle.source == source)
+    
+    articles = query.order_by(SentimentArticle.publish_time.desc()).limit(limit).all()
+    
+    data = [{
+        "id": str(a.id),
+        "title": a.title,
+        "source": a.source,
+        "source_type": a.source_type,
+        "url": a.url,
+        "publish_time": a.publish_time.isoformat() if a.publish_time else None,
+        "sentiment_score": a.sentiment_score,
+    } for a in articles]
+    
+    if format == "csv":
+        csv_lines = ["id,title,source,source_type,sentiment"]
+        for a in data:
+            sentiment = a.get('sentiment_score', {}).get('overall', '') if a.get('sentiment_score') else ''
+            csv_lines.append(f"{a['id']},{a['title']},{a['source']},{a['source_type']},{sentiment}")
+        return {"data": "\n".join(csv_lines), "content_type": "text/csv"}
+    
+    return {"data": data, "count": len(data)}
+
+
+@router_export.get("/export/events")
+def export_events(
+    format: str = "json",
+    status: str = "active",
+    db: Session = Depends(get_db)
+):
+    """导出事件数据"""
+    query = db.query(SentimentEvent)
+    if status:
+        query = query.filter(SentimentEvent.status == status)
+    
+    events = query.order_by(SentimentEvent.created_at.desc()).all()
+    
+    data = [{
+        "id": str(e.id),
+        "title": e.title,
+        "type": e.type,
+        "severity": e.severity,
+        "status": e.status,
+        "start_time": e.start_time.isoformat() if e.start_time else None,
+        "created_at": e.created_at.isoformat() if e.created_at else None
+    } for e in events]
+    
+    return {"data": data, "count": len(data)}
+
+
+@router_export.get("/export/graph")
+def export_graph(
+    project_id: str = None,
+    format: str = "json",
+    db: Session = Depends(get_db)
+):
+    """导出知识图谱"""
+    if project_id:
+        from app.models.database import Entity, Triple
+        entities = db.query(Entity).filter(Entity.project_id == project_id).all()
+        entity_map = {str(e.id): e for e in entities}
+        
+        triples = db.query(Triple).filter(Triple.project_id == project_id).all()
+        
+        nodes = [{"id": str(e.id), "name": e.name, "type": e.type} for e in entities]
+        edges = []
+        for t in triples:
+            head = entity_map.get(str(t.head_id))
+            tail = entity_map.get(str(t.tail_id))
+            if head and tail:
+                edges.append({
+                    "head": head.name,
+                    "relation": t.relation,
+                    "tail": tail.name
+                })
+    else:
+        from app.models.database import Entity, Triple
+        entities = db.query(Entity).limit(1000).all()
+        triples = db.query(Triple).limit(1000).all()
+        
+        nodes = [{"id": str(e.id), "name": e.name, "type": e.type} for e in entities]
+        edges = [{"head": t.head_id, "relation": t.relation, "tail": t.tail_id} for t in triples]
+    
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "count": {"nodes": len(nodes), "edges": len(edges)}
+    }

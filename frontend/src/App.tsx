@@ -10,9 +10,11 @@ import {
   LinkOutlined,
   SettingOutlined,
   LineChartOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
+import DashboardStats from './pages/DashboardStats'
 import Projects from './pages/Projects'
 import Documents from './pages/Documents'
 import GraphView from './pages/GraphView'
@@ -32,6 +34,7 @@ function App() {
 
   const menuItems = [
     { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: '/stats', icon: <BarChartOutlined />, label: 'Statistics' },
     { key: '/projects', icon: <ProjectOutlined />, label: 'Projects' },
     { key: '/documents', icon: <FileTextOutlined />, label: 'Documents' },
     { key: '/graph', icon: <ApartmentOutlined />, label: 'Knowledge Graph' },
@@ -66,6 +69,7 @@ function App() {
         <Content style={{ margin: 24, padding: 24, background: '#fff', minHeight: 280, borderRadius: 8 }}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/stats" element={<DashboardStats />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/graph" element={<GraphView />} />
