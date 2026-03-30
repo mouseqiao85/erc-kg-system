@@ -1,66 +1,87 @@
-# ERC-KG Deployment Script
+#!/bin/bash
 
-## 1. Upload project to server
-```bash
-# From local machine, copy project to server
-scp -r /path/to/erc-kg-system root@8.215.63.182:~/
-```
+# ERC-KG 部署脚本 - 在服务器上运行
+# 使用方法: chmod +x deploy.sh && ./deploy.sh
 
-## 2. Server setup commands
+set -e
 
-```bash
-# SSH to server
-ssh root@8.215.63.182
+echo "=========================================="
+echo "ERC-KG 自动化部署脚本"
+echo "=========================================="
 
-# Install Python dependencies
-cd ~/erc-kg-system/backend
-pip install -r requirements.txt
+# 检查是否为root用户
+if [ "$EUID" -ne 0 ]; then
+  echo "请使用root用户运行: sudo ./deploy.sh"
+  exit 1
+fi
 
-# Install Node.js dependencies
-cd ~/erc-kg-system/frontend
-npm install
+# 更新系统
+echo "[1/7] 更新系统包..."
+apt-get update -y
+apt-get upgrade -y
 
-# Configure environment
-cp .env.example .env
-nano .env  # Edit with your database credentials
-```
+# 安装Docker
+echo "[2/7] 安装Docker..."
+if ! command -v docker &> /dev/null; then
+    curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+    sh /tmp/get-docker.sh
+    rm /tmp/get-docker.sh
+    systemctl start docker
+    systemctl enable docker
+fi
 
-## 3. Start services
+# 安装Docker Compose
+echo "[3/7] 安装Docker Compose..."
+if ! command -v docker-compose &> /dev/null; then
+    curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+fi
 
-```bash
-# Start backend (port 8000)
-cd ~/erc-kg-system/backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+# 创建项目目录
+echo "[4/7] 创建项目目录..."
+mkdir -p /var/www
+cd /var/www
 
-# Start frontend (port 3000)
-cd ~/erc-kg-system/frontend
-npm run dev -- --host 0.0.0.0
-```
+# 克隆或更新项目
+echo "[5/7] 获取项目代码..."
+if [ -d "erc-kg-system/.git" ]; then
+    cd erc-kg-system
+    git pull
+else
+    git clone https://github.com/mouseqiao85/erc-kg-system.git
+    cd erc-kg-system
+fi
 
-## 4. Nginx (optional, for production)
+# 配置环境变量
+echo "[6/7] 配置环境变量..."
+if [ ! -f .env ]; then
+    cp .env.example .env
+    echo "请编辑 .env 文件设置 OPENAI_API_KEY"
+fi
 
-```bash
-# Install nginx
-apt install nginx
+# 编辑环境变量 - 添加你的API Key
+# 如果有API Key，直接写入
+if [ -n "$OPENAI_API_KEY" ]; then
+    sed -i "s/OPENAI_API_KEY=.*/OPENAI_API_KEY=$OPENAI_API_KEY/" .env
+fi
 
-# Create nginx config
-nano /etc/nginx/sites-available/erc-kg
+# 启动服务
+echo "[7/7] 启动Docker服务..."
+docker-compose down 2>/dev/null || true
+docker-compose build --no-cache
+docker-compose up -d
 
-# Content:
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://localhost:3000;
-    }
-
-    location /api {
-        proxy_pass http://localhost:8000;
-    }
-}
-
-# Enable site
-ln -s /etc/nginx/sites-available/erc-kg /etc/nginx/sites-enabled/
-nginx -t && systemctl restart nginx
-```
+echo ""
+echo "=========================================="
+echo "部署完成!"
+echo "=========================================="
+echo ""
+echo "访问地址:"
+echo "  前端: http://$(hostname -I | awk '{print $1}'):3000"
+echo "  后端: http://$(hostname -I | awk '{print $1}'):8000"
+echo "  API文档: http://$(hostname -I | awk '{print $1}'):8000/docs"
+echo ""
+echo "如需配置域名，请在 /etc/nginx/sites-available/ 配置 Nginx"
+echo ""
+echo "查看日志: docker-compose logs -f"
+echo "停止服务: docker-compose down"
