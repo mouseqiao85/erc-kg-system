@@ -15,8 +15,11 @@ llm_client = None
 
 def get_llm_client():
     global llm_client
-    if llm_client is None and settings.openai_api_key:
-        llm_client = OpenAI(api_key=settings.openai_api_key)
+    if llm_client is None and settings.llm_api_key:
+        llm_client = OpenAI(
+            api_key=settings.llm_api_key,
+            base_url=settings.llm_base_url
+        )
     return llm_client
 
 

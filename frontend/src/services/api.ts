@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '../stores/authStore'
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -8,12 +9,39 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  const token = useAuthStore.getState().token
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      useAuthStore.getState().logout()
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
+export const authService = {
+  login: async (data: { username: string; password: string }) => {
+    const response = await api.post('/auth/login', data)
+    return response.data
+  },
+  register: async (data: { username: string; email: string; password: string }) => {
+    const response = await api.post('/auth/register', data)
+    return response.data
+  },
+  refresh: (refreshToken: string) => api.post('/auth/refresh', { refresh_token: refreshToken }),
+  getCurrentUser: async () => {
+    const response = await api.get('/auth/me')
+    return response.data
+  },
+}
 
 export const projectService = {
   getProjects: (params?: any) => api.get('/projects', { params }),
@@ -60,11 +88,6 @@ export const graphService = {
   getSubgraph: (entityId: string, depth?: number) => api.get('/graph/subgraph', { params: { entity_id: entityId, depth } }),
   queryCypher: (query: string) => api.post('/graph/cypher', { query }),
   naturalQuery: (question: string, projectId?: string) => api.post('/graph/natural', { question: { question, project_id: projectId } }),
-}
-
-export const authService = {
-  login: (data: { username: string; password: string }) => api.post('/auth/login', data),
-  refresh: (refreshToken: string) => api.post('/auth/refresh', { refresh_token: refreshToken }),
 }
 
 export const sentimentService = {

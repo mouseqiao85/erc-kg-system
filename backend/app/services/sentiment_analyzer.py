@@ -8,7 +8,13 @@ class SentimentAnalyzer:
     """情感分析器"""
     
     def __init__(self, client: OpenAI = None):
-        self.client = client or OpenAI(api_key=settings.openai_api_key)
+        if client is None:
+            self.client = OpenAI(
+                api_key=settings.llm_api_key,
+                base_url=settings.llm_base_url
+            )
+        else:
+            self.client = client
     
     def analyze_sentiment(self, text: str) -> Dict[str, Any]:
         """分析文本情感"""

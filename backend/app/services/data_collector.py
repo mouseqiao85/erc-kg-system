@@ -1,9 +1,25 @@
+"""
+数据采集服务
+
+支持从多种来源采集数据：
+- 文件
+- URL
+- RSS Feed
+- 百度搜索API
+"""
+
 import asyncio
 import aiohttp
 import feedparser
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import re
+import logging
+
+from app.services.baidu_search import BaiduSearchClient, BaiduSearchConfig
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class DataCollector:

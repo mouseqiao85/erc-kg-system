@@ -49,7 +49,13 @@ class LLMTripleExtractor:
         max_tokens: int = 2000,
         prompt_template: str = None
     ):
-        self.client = client or OpenAI(api_key=settings.openai_api_key)
+        if client is None:
+            self.client = OpenAI(
+                api_key=settings.llm_api_key,
+                base_url=settings.llm_base_url
+            )
+        else:
+            self.client = client
         self.model = model or settings.llm_model
         self.temperature = temperature
         self.max_tokens = max_tokens
