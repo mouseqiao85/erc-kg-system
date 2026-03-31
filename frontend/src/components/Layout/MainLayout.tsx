@@ -16,6 +16,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MonitorOutlined,
+  RocketOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
@@ -42,6 +43,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     { key: '/graph', icon: <ApartmentOutlined />, label: 'Knowledge Graph' },
     { key: '/query', icon: <SearchOutlined />, label: 'Query' },
     { key: '/sentiment', icon: <LineChartOutlined />, label: 'Sentiment Analysis' },
+    { key: '/sentiment-tasks', icon: <RocketOutlined />, label: 'Sentiment Tasks' },
     { key: '/entities', icon: <TeamOutlined />, label: 'Entities' },
     { key: '/triples', icon: <LinkOutlined />, label: 'Triples' },
     { key: '/jobs', icon: <SettingOutlined />, label: 'Jobs' },

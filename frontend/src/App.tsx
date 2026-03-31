@@ -14,6 +14,7 @@ import Triples from './pages/Triples'
 import Settings from './pages/Settings'
 import SentimentAnalysis from './pages/SentimentAnalysis'
 import SystemMonitor from './pages/SystemMonitor'
+import SentimentTasks from './pages/SentimentTasks'
 import './App.css'
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/graph" element={<GraphView />} />
                 <Route path="/query" element={<Query />} />
                 <Route path="/sentiment" element={<SentimentAnalysis />} />
+                <Route path="/sentiment-tasks" element={<SentimentTasks />} />
                 <Route path="/entities" element={<Entities />} />
                 <Route path="/triples" element={<Triples />} />
                 <Route path="/jobs" element={<Jobs />} />
