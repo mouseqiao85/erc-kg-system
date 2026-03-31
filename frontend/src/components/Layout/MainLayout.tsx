@@ -15,6 +15,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MonitorOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
@@ -44,6 +45,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     { key: '/entities', icon: <TeamOutlined />, label: 'Entities' },
     { key: '/triples', icon: <LinkOutlined />, label: 'Triples' },
     { key: '/jobs', icon: <SettingOutlined />, label: 'Jobs' },
+    { key: '/monitor', icon: <MonitorOutlined />, label: 'System Monitor' },
     { key: '/settings', icon: <SettingOutlined />, label: 'Settings' },
   ]
 

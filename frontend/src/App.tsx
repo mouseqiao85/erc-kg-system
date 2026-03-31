@@ -13,6 +13,7 @@ import Entities from './pages/Entities'
 import Triples from './pages/Triples'
 import Settings from './pages/Settings'
 import SentimentAnalysis from './pages/SentimentAnalysis'
+import SystemMonitor from './pages/SystemMonitor'
 import './App.css'
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
                 <Route path="/triples" element={<Triples />} />
                 <Route path="/jobs" element={<Jobs />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/monitor" element={<SystemMonitor />} />
               </Routes>
             </MainLayout>
           </ProtectedRoute>
