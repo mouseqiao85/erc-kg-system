@@ -2,11 +2,11 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.api import documents, projects, entities, triples, jobs, graph, auth, websocket, sentiment
+from app.api import documents, projects, entities, triples, jobs, graph, auth, websocket, sentiment, import_export, sentiment_tasks
 
 app = FastAPI(
     title="ERC-KG API",
-    description="Knowledge Graph Builder API",
+    description="Knowledge Graph Builder API with Sentiment Analysis",
     version="1.0.0"
 )
 
@@ -32,6 +32,8 @@ app.include_router(sentiment.router_articles, prefix="/api/v1/sentiment/articles
 app.include_router(sentiment.router_events, prefix="/api/v1/sentiment/events", tags=["sentiment-events"])
 app.include_router(sentiment.router_tasks, prefix="/api/v1/sentiment/tasks", tags=["sentiment-tasks"])
 app.include_router(sentiment.router_export, prefix="/api/v1/export", tags=["export"])
+app.include_router(import_export.router, prefix="/api/v1/io", tags=["import-export"])
+app.include_router(sentiment_tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
 
 
 @app.get("/")
